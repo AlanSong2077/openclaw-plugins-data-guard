@@ -30,14 +30,15 @@ export function ensureTempDir(tempDir) {
 
 /**
  * 生成临时文件路径（基于原始路径 hash，避免冲突）
+ * 保留原始扩展名，确保 AI 读取时能正确识别文件格式。
  * @param {string} originalPath
  * @param {string} tempDir
  * @returns {string}
  */
 export function makeTempPath(originalPath, tempDir) {
   const hash = createHash('sha256').update(originalPath + Date.now() + Math.random()).digest('hex').slice(0, 8)
-  // 统一输出为 .csv（脱敏后的内容）
-  return `${tempDir}/dg_${hash}.csv`
+  const ext  = extname(originalPath).toLowerCase() || '.csv'
+  return `${tempDir}/dg_${hash}${ext}`
 }
 
 // ── 列级脱敏（精准模式）──────────────────────────────────────────────────────
@@ -147,10 +148,13 @@ export function readAndDesensitize(filePath, tempDir) {
       return { outputPath: filePath, stats, changed: false }
     }
 
+    // 将脱敏后的 sheets 合并回原始 parsed 对象（保留 _raw 等格式私有字段）
+    const mergedParsed = { ...parsed, sheets: desensitized.sheets }
+
     // 序列化并写入临时文件
     ensureTempDir(tempDir)
     const outPath = makeTempPath(filePath, tempDir)
-    const outBuf  = format.serialize(desensitized)
+    const outBuf  = format.serialize(mergedParsed)
     writeFileSync(outPath, outBuf)
 
     return { outputPath: outPath, stats, changed: true }

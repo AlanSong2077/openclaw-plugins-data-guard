@@ -65,6 +65,6 @@ export class ToolPlugin extends Plugin {
       return this.handleToolCall(toolName, params, config, logger)
     })
 
-    this.log(logger, `✅ 已注册，拦截工具: [${tools.join(', ')}]`)
+    this.log(logger, `registered, intercepting tools: [${tools.join(', ')}]`)
   }
 }

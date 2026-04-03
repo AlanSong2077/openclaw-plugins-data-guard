@@ -98,5 +98,5 @@ export function register(api) {
     filePlugin.register(api, pluginConfig, logger)
   }
 
-  logger?.info('[data-guard] ✅ 已注册（HTTP 代理层 + 工具调用层双重脱敏）')
+  logger?.info('[data-guard] registered (HTTP proxy layer + tool call layer)')
 }

@@ -184,7 +184,7 @@ export class ProxyServer {
       })
 
       this._server.listen(this.port, '127.0.0.1', () => {
-        this._log('info', `🛡️  Data Guard 代理已启动，监听 http://127.0.0.1:${this.port}`)
+        this._log('info', `Data Guard proxy started, listening on http://127.0.0.1:${this.port}`)
         resolve()
       })
     })
@@ -262,7 +262,7 @@ export class ProxyServer {
 
       if (counter.n > 0) {
         const typesSummary = Object.entries(counter.types ?? {}).map(([k, v]) => `${k}×${v}`).join(', ')
-        this._log('info', `✅ 已脱敏 ${counter.n} 处 [${typesSummary}]`)
+        this._log('info', `desensitized ${counter.n} item(s) [${typesSummary}]`)
         const newBody    = Buffer.from(JSON.stringify(desensitized), 'utf8')
         const newHeaders = { ...req.headers, 'content-length': String(newBody.length) }
         forwardRequest(target, req.method, newHeaders, newBody, res)

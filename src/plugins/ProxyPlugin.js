@@ -140,6 +140,6 @@ export class ProxyPlugin extends Plugin {
       },
     })
 
-    this.log(logger, '✅ 已注册 HTTP 代理服务')
+    this.log(logger, 'HTTP proxy service registered')
   }
 }

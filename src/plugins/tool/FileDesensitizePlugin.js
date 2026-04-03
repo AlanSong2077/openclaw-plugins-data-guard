@@ -1,10 +1,12 @@
 /**
- * src/plugins/tool/FileDesensitizePlugin.js — 文件脱敏 ToolPlugin
+ * src/plugins/tool/FileDesensitizePlugin.js — file desensitization ToolPlugin
  *
- * 拦截 AI 的文件读取工具调用（read / read_file / read_many_files），
- * 在 AI 读取 CSV/XLSX/XLS 文件前，将文件内容替换为脱敏后的临时文件。
+ * Intercepts AI file-read tool calls (read / read_file / read_many_files).
+ * Before the AI sees the file content, replaces the file path with a
+ * desensitized temporary copy.
  *
- * 继承自 ToolPlugin，只需关注业务逻辑，框架负责 hook 注册和工具名过滤。
+ * Supported formats: CSV, XLSX, XLS, DOCX, PPTX, PDF.
+ * Inherits from ToolPlugin; only business logic is needed here.
  */
 
 import { existsSync }       from 'fs'
@@ -25,9 +27,9 @@ export class FileDesensitizePlugin extends ToolPlugin {
   }
 
   get id()   { return 'file-desensitize' }
-  get name() { return '文件脱敏（工具调用层）' }
+  get name() { return 'File Desensitization (tool call layer)' }
   get description() {
-    return '拦截 AI 读取 CSV/XLSX/XLS 文件的工具调用，在文件内容到达 AI 前执行列名精准脱敏'
+    return 'Intercepts AI file-read tool calls and desensitizes CSV, XLSX, XLS, DOCX, PPTX, and PDF content before it reaches the model.'
   }
 
   get supportedTools() {
@@ -88,7 +90,7 @@ export class FileDesensitizePlugin extends ToolPlugin {
         }
 
         const typesSummary = Object.entries(stats.byType).map(([k, v]) => `${k}×${v}`).join(', ')
-        this.log(logger, `✅ ${basename(filePath)} 已脱敏 ${stats.total} 处 [${typesSummary}]`)
+        this.log(logger, `${basename(filePath)}: desensitized ${stats.total} item(s) [${typesSummary}]`)
       }
     }
 
