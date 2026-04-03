@@ -2,7 +2,7 @@
 
 > Dual-layer data desensitization plugin for OpenClaw. Sensitive data is sanitized locally before it ever reaches an AI API.
 
-----
+-----
 
 ## Overview
 
