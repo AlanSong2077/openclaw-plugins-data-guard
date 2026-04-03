@@ -1,9 +1,14 @@
 {
-  "name": "data-guard",
+  "name": "openclaw-plugin-data-guard",
   "version": "2.0.3",
-  "description": "Data Guard — 双层数据脱敏插件（HTTP 代理层 + 工具调用层）。分层架构：输入层/输出层/代理层/插件层/核心层，支持扩展新文件格式。纯 Node.js 引擎（零外部依赖），30+ 类脱敏 + CSV/XLSX/XLS 列名精准脱敏。",
+  "description": "AI 数据隐私护盾 — 双层数据脱敏插件（HTTP 代理层 + 工具调用层）。纯 Node.js，零外部依赖，数据不离开本机。",
   "type": "module",
   "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AlanSong2077/openclaw-plugins-data-guard"
+  },
+  "homepage": "https://github.com/AlanSong2077/openclaw-plugins-data-guard#readme",
   "exports": {
     ".": "./index.js",
     "./core/desensitize": "./src/core/desensitize.js",
@@ -60,6 +65,7 @@
     "test:proxy":   "node test/index.js --only proxy",
     "test:plugins": "node test/index.js --only plugins",
     "test:bail":    "node test/index.js --bail",
-    "pack":         "npm pack"
+    "pack":         "npm pack && openclaw plugins install openclaw-plugin-data-guard",
+    "postinstall":  "npm run pack"
   }
 }
