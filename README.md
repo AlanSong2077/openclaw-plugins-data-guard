@@ -55,33 +55,6 @@
 
 **30+ categories** of sensitive data are recognized and masked:
 
-| Category | Mask Strategy |
-|:---------|:--------------|
-| 📱 Phone number (CN 11-digit + intl) | `138****5678` |
-| 🆔 Chinese ID card (18/15 digit) | `110***********1234` |
-| 💳 Bank card (Luhn-verified, 16-19 digit) | `6222**********0123` |
-| 📧 Email address | `u***r@example.com` |
-| 🛂 Passport / HK-Macao / TW permit | `E****678` |
-| 🌐 IPv4 / IPv6 | `192.168.*.*` |
-| 🧾 Unified Social Credit Code | `91**************2G` |
-| 🧾 Invoice number | `FP***********` |
-| 🔢 Order / transaction ID | `单号_92b6fedb` |
-| 🏛️ Social security / housing fund | `社保_a1b2c3` |
-| 👤 Chinese name | `用户_a3f2` |
-| 🏠 Address | `北京市朝阳区***` |
-| 🔐 Token / API key / password | `sk-****` |
-| 💬 WeChat / QQ ID | `wx_****` |
-| 🚗 Vehicle license plate | `京A·***5` |
-| 🏢 Company / fund / institution name | `公司_f1e2` |
-| 🤝 Vendor / customer / partner | `供应商_A` |
-| 🏗️ Department / team | `部门_B` |
-| 📅 Birth date / age | `****-**-**` / `**岁` |
-| 🪪 Driver's license | `**xxxx**` |
-| 🔢 Employee ID / contract no. | `工号_3a4b5c` |
-
-### Column-level Precision (CSV / Excel)
-
-When reading CSV or Excel files, Data Guard identifies sensitive columns by **header name** and applies the appropriate mask — not a blanket regex. Context-aware inference handles variant column names like `联系方式2`, `备用手机号`, `操作员`.
 
 ---
 
