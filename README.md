@@ -12,38 +12,63 @@
 
 ---
 
-## 🎯 Overview
-
-**Data Guard** is a four-layer data desensitization plugin for OpenClaw. It intercepts outbound AI requests at **four independent layers** — HTTP proxy, file tool hook, Python exec hook, and Shell exec hook — ensuring that personal and sensitive information is masked on your machine **before** being sent upstream.
-
-| | |
-|---|---|
-| Version | 2.2.1 |
-| Plugin ID | `data-guard` |
-| Engine | Pure Node.js — zero external dependencies |
-| Platform | macOS · Linux · Windows |
-| License | MIT |
+<p align="center">
+  <strong>🇨🇳 中文</strong> | <strong>🇺🇸 English</strong>
+</p>
 
 ---
 
-## ⚡ Architecture
+## 🎯 产品定位 | Product Positioning
+
+> **专为中小型金融机构、创投企业打造的隐私合规解决方案**
+>
+> **Privacy-First AI Solution for Financial & VC Institutions**
+
+在使用 **龙虾 (OpenClaw)** 🦞 调用外部大模型（GPT-4、Claude、DeepSeek 等）时，**Data Guard** 确保您的客户数据、投资组合信息、尽调资料等敏感内容在**本地完成脱敏**，绝不上传到第三方 AI 服务商。
+
+When using **OpenClaw** 🦞 to invoke external LLMs (GPT-4, Claude, DeepSeek, etc.), **Data Guard** ensures your client data, portfolio information, and due diligence materials are **desensitized locally** before any data leaves your machine.
+
+| | |
+|:---|:---|
+| **版本 Version** | 2.2.1 |
+| **插件 ID Plugin ID** | `data-guard` |
+| **引擎 Engine** | Pure Node.js — 零外部依赖 zero external dependencies |
+| **平台 Platform** | macOS · Linux · Windows |
+| **许可证 License** | MIT |
+
+---
+
+## 🏦 适用场景 | Use Cases
+
+| 场景 Scenario | 风险 Risk | 解决方案 Solution |
+|:--|:--|:--|
+| 投行分析师用 AI 处理客户财务报表 | 客户姓名、银行卡号泄露 | 自动识别并脱敏金融数据 |
+| 创投机构上传被投企业尽调资料 | 商业机密、创始人身份证号外泄 | 本地预处理，零上云 |
+| 基金公司批量处理投资人信息 | 手机号、地址等 PII 暴露 | 列级精准脱敏 CSV/Excel |
+| 合规审计要求数据不出境 | 跨境数据传输风险 | 本地脱敏引擎，无需联网 |
+
+---
+
+## ⚡ 四层架构 | Four-Layer Architecture
 
 <p align="center">
   <img src="docs/arch.png" width="100%" alt="Data Guard Architecture Diagram"/>
 </p>
 
-| Layer | Trigger | What it covers |
-|:------|:--------|:---------------|
-| 🟣 **L4: Shell Exec** | `exec` / `process` — shell commands | `cat` · `awk` · `sed` · `grep` · `head` · `tail` · `node` · `ruby` · `R` · `perl` · `jq` · `sqlite3` · 50+ commands |
-| 🟡 **L3: Python Exec** | `exec` / `process` — Python commands | `pd.read_csv` · `pd.read_excel` · `polars` · `open(file)` · `csv.reader` · `python3 script.py` |
-| 🟢 **L2: File Tool** | `read`, `read_file`, `read_many_files` | CSV / XLSX / XLS / DOCX / PPTX / PDF with column-level precision |
-| 🔵 **L1: HTTP Proxy** | Every outbound `POST /v1/*` API call | All message text sent to the model — ultimate safety net |
+| 层级 Layer | 触发点 Trigger | 覆盖范围 Coverage |
+|:-----------|:---------------|:------------------|
+| 🟣 **L4: Shell 执行层 Shell Exec** | `exec` / `process` — shell 命令 | `cat` · `awk` · `sed` · `grep` · `head` · `tail` · `node` · `ruby` · `R` · `perl` · `jq` · `sqlite3` 等 50+ 命令 |
+| 🟡 **L3: Python 执行层 Python Exec** | `exec` / `process` — Python 命令 | `pd.read_csv` · `pd.read_excel` · `polars` · `open(file)` · `csv.reader` · `python3 script.py` |
+| 🟢 **L2: 文件工具层 File Tool** | `read`, `read_file`, `read_many_files` | CSV / XLSX / XLS / DOCX / PPTX / PDF，支持列级精准脱敏 |
+| 🔵 **L1: HTTP 代理层 HTTP Proxy** | 所有 outbound `POST /v1/*` API 调用 | 所有发送给模型的文本 — 终极安全网 |
 
+> 四层共享**同一脱敏引擎**，规则完全一致，无重复逻辑，无一致性风险。
+>
 > All four layers share the **same desensitization engine** with identical rules. No duplicated logic, no inconsistency.
 
 ---
 
-## 🔄 Request Processing Workflow
+## 🔄 工作流程 | Workflow
 
 <p align="center">
   <img src="docs/workflow.png" width="90%" alt="Data Guard Workflow Diagram"/>
@@ -51,142 +76,180 @@
 
 ---
 
-## 🛡️ Supported Data Types
+## 🛡️ 支持的数据类型 | Supported Data Types
 
-**30+ categories** of sensitive data are recognized and masked:
+**30+ 类敏感数据**自动识别并脱敏 | **30+ categories** of sensitive data are recognized and masked:
 
+| 数据类型 Data Type | 脱敏策略 Mask Strategy |
+|:-------------------|:-----------------------|
+| 📱 手机号（中国 11 位 + 国际）Phone number | `138****5678` |
+| 🆔 中国身份证号（18/15 位）Chinese ID card | `110***********1234` |
+| 💳 银行卡号（Luhn 校验，16-19 位）Bank card | `6222**********0123` |
+| 📧 电子邮箱 Email address | `u***r@example.com` |
+| 🛂 护照 / 港澳通行证 / 台湾通行证 Passport / HK-Macao / TW permit | `E****678` |
+| 🌐 IPv4 / IPv6 | `192.168.*.*` |
+| 🧾 统一社会信用代码 Unified Social Credit Code | `91**************2G` |
+| 🧾 发票号码 Invoice number | `FP***********` |
+| 🔢 订单号 / 交易流水号 Order / transaction ID | `单号_92b6fedb` |
+| 🏛️ 社保 / 公积金账号 Social security / housing fund | `社保_a1b2c3` |
+| 👤 中文姓名 Chinese name | `用户_a3f2` |
+| 🏠 地址信息 Address | `北京市朝阳区***` |
+| 🔐 Token / API 密钥 / 密码 Token / API key / password | `sk-****` |
+| 💬 微信号 / QQ 号 WeChat / QQ ID | `wx_****` |
+| 🚗 车牌号 Vehicle license plate | `京A·***5` |
+| 🏢 公司 / 基金 / 机构名称 Company / fund / institution name | `公司_f1e2` |
+| 🤝 供应商 / 客户 / 合作伙伴 Vendor / customer / partner | `供应商_A` |
+| 🏗️ 部门 / 团队 Department / team | `部门_B` |
+| 📅 出生日期 / 年龄 Birth date / age | `****-**-**` / `**岁` |
+| 🪪 驾驶证号 Driver's license | `**xxxx**` |
+| 🔢 工号 / 合同编号 Employee ID / contract no. | `工号_3a4b5c` |
+
+### 列级精准脱敏（CSV / Excel）| Column-Level Precision
+
+读取 CSV 或 Excel 时，Data Guard 通过**表头名称**识别敏感列，针对性脱敏 — 而非全局正则替换。支持智能识别变体表头如 `联系方式2`、`备用手机号`、`操作员` 等。
+
+When reading CSV or Excel files, Data Guard identifies sensitive columns by **header name** and applies the appropriate mask — not a blanket regex. Context-aware inference handles variant column names like `联系方式2`, `备用手机号`, `操作员`.
 
 ---
 
-## 🚀 Quick Start
+## 🚀 快速开始 | Quick Start
 
 ```bash
-# 1. Clone and pack
+# 1. 克隆并打包 | Clone and pack
 git clone https://github.com/AlanSong2077/openclaw-plugins-data-guard.git
 cd openclaw-plugins-data-guard
 npm pack
 
-# 2. Install into OpenClaw
+# 2. 安装到 OpenClaw | Install into OpenClaw
 openclaw plugins install data-guard-2.2.1.tgz
 
-# 3. Restart the gateway
+# 3. 重启网关 | Restart gateway
 openclaw gateway restart
 
-# 4. Verify
+# 4. 验证 | Verify
 openclaw plugins list
 # data-guard   loaded   2.2.1 ✅
 ```
 
 ---
 
-## ⚙️ Configuration
+## ⚙️ 配置选项 | Configuration
 
-| Option | Type | Default | Description |
-|:-------|:-----|:--------|:------------|
-| `port` | integer | `47291` | Port the local HTTP proxy listens on |
-| `blockOnFailure` | boolean | `true` | Block request if desensitization fails |
-| `fileGuard` | boolean | `true` | Enable Layer 2 file desensitization |
-| `pythonGuard` | boolean | `true` | Enable Layer 3 Python exec desensitization |
-| `shellGuard` | boolean | `true` | Enable Layer 4 Shell exec desensitization |
-| `skipPrefix` | string | `[skip-guard]` | Prepend to bypass text desensitization (L1 only) |
+| 选项 Option | 类型 Type | 默认值 Default | 说明 Description |
+|:------------|:----------|:---------------|:-----------------|
+| `port` | integer | `47291` | 本地 HTTP 代理监听端口 Proxy port |
+| `blockOnFailure` | boolean | `true` | 脱敏失败时阻断请求 Block request on failure |
+| `fileGuard` | boolean | `true` | 启用 L2 文件脱敏 Enable file desensitization |
+| `pythonGuard` | boolean | `true` | 启用 L3 Python 脱敏 Enable Python exec desensitization |
+| `shellGuard` | boolean | `true` | 启用 L4 Shell 脱敏 Enable Shell exec desensitization |
+| `skipPrefix` | string | `[skip-guard]` | 绕过 L1 文本脱敏的前缀 Prefix to bypass L1 |
 
-### Environment Variables
+### 环境变量 | Environment Variables
 
-| Variable | Default | Description |
-|:---------|:--------|:------------|
-| `DATA_GUARD_PORT` | `47291` | Proxy port (overrides plugin config) |
-| `DATA_GUARD_BLOCK_ON_FAILURE` | `true` | Fail-safe mode |
-| `OPENCLAW_DIR` | `~/.openclaw` | OpenClaw config directory |
+| 变量 Variable | 默认值 Default | 说明 Description |
+|:--------------|:---------------|:-----------------|
+| `DATA_GUARD_PORT` | `47291` | 代理端口（覆盖配置）Proxy port override |
+| `DATA_GUARD_BLOCK_ON_FAILURE` | `true` | 故障安全模式 Fail-safe mode |
+| `OPENCLAW_DIR` | `~/.openclaw` | OpenClaw 配置目录 Config directory |
 
 ---
 
-## 🔄 Orphan Process Protection
+## 🔄 孤儿进程保护 | Orphan Process Protection
+
+代理作为网关的**子进程**运行，双重机制确保不会成为孤儿进程：
 
 The proxy runs as a **child process** of the gateway. Two mechanisms ensure it never becomes orphaned:
 
-| Mechanism | Side | Description |
-|:----------|:-----|:------------|
-| ❤️ **Heartbeat** | Proxy | Every 5 s checks parent via `process.kill(ppid, 0)`. Shuts down if parent is gone. |
-| 🧹 **PID Cleanup** | Plugin | On every `start()`, kills stale process before spawning a new one. |
-| 🗑️ **Legacy Cleanup** | Plugin | On every `register()`, removes hooks from older Data Guard versions to prevent conflicts. |
+| 机制 Mechanism | 位置 Side | 说明 Description |
+|:---------------|:----------|:-----------------|
+| ❤️ **心跳检测 Heartbeat** | 代理 Proxy | 每 5 秒检测父进程，父进程消失则自动退出 Every 5s checks parent via `process.kill(ppid, 0)`. Shuts down if parent is gone. |
+| 🧹 **PID 清理 PID Cleanup** | 插件 Plugin | 每次 `start()` 杀死残留进程 On every `start()`, kills stale process before spawning a new one. |
+| 🗑️ **旧版本清理 Legacy Cleanup** | 插件 Plugin | 每次 `register()` 移除旧版本钩子 On every `register()`, removes hooks from older Data Guard versions. |
 
 ---
 
-## ⏭️ Skipping Desensitization
+## ⏭️ 跳过脱敏 | Skipping Desensitization
+
+如需**跳过 L1 文本脱敏**，在消息前添加 `[skip-guard]`（可配置）。
 
 To send a message **without** Layer 1 text desensitization, prefix it with `[skip-guard]` (configurable).
 
+> ⚠️ L2、L3、L4（文件 / Python / Shell）**不受此前缀影响**。
+>
 > ⚠️ Layers 2, 3, and 4 (file / Python / Shell exec) are **unaffected** by this prefix.
-
 
 ---
 
-## 🛠️ Extending Data Guard
+## 🛠️ 扩展 Data Guard | Extending Data Guard
+
+Data Guard 支持自定义文件格式和执行插件扩展。参考 `src/plugins/` 目录下的源码实现模式。
 
 Data Guard supports extending with custom file formats and exec plugins. See the source code in `src/plugins/` for implementation patterns.
 
 ---
 
-## 🔧 Troubleshooting
+## 🔧 故障排查 | Troubleshooting
 
-**Port 47291 already in use** — In v2.2.1, stale proxy processes are automatically cleaned up on every `start()`. If needed, use `lsof -i :47291` to find and kill the process, then restart the gateway.
+**端口 47291 已被占用 Port 47291 already in use** — 在 v2.2.1 中，每次 `start()` 会自动清理残留代理进程，通常无需手动处理。如需手动处理，使用 `lsof -i :47291` 查找并终止进程，然后重启网关。
 
-**Plugin not loading** — Try reinstalling: `openclaw plugins uninstall data-guard --force` then `openclaw plugins install data-guard-2.2.1.tgz`.
+> In v2.2.1, stale proxy processes are automatically cleaned up on every `start()`. If needed, use `lsof -i :47291` to find and kill the process, then restart the gateway.
 
-**Check proxy logs** — `tail -f ~/.openclaw/data-guard/proxy.log`
+**插件未加载 Plugin not loading** — 尝试重新安装：`openclaw plugins uninstall data-guard --force` 然后 `openclaw plugins install data-guard-2.2.1.tgz`。
 
-**Shell exec layer not triggering**
+**查看代理日志 Check proxy logs** — `tail -f ~/.openclaw/data-guard/proxy.log`
+
+**Shell 执行层未触发 Shell exec layer not triggering** — 确保配置中 `shellGuard` 未设为 `false`。Shell 执行层仅拦截 `exec` 和 `process` 工具调用，不影响直接的 `read` / `read_file` 调用（这些由 L2 处理）。
 
 Ensure `shellGuard` is not set to `false` in your plugin config. The Shell exec layer only intercepts `exec` and `process` tool calls — it does not affect direct `read` / `read_file` calls (those are handled by L2).
 
 ---
 
-## 📋 Changelog
+## 📋 更新日志 | Changelog
 
 ### v2.2.1
-- **NEW** Layer 4 — Shell Exec desensitization (`ShellExecPlugin`)
-  - Covers `cat` / `head` / `tail` / `awk` / `sed` / `grep` / `cut` / `sort` / `wc` / `diff` and 40+ more shell commands
-  - Covers `node` / `ruby` / `Rscript` / `perl` / `php` / `lua` / `julia` and other language runtimes
-  - Covers data tools: `jq` / `yq` / `sqlite3` / `csvkit` / `xsv` / `miller`
-  - Shared `execUtils.js` with Python layer — path extraction and desensitize logic deduplicated
-- **NEW** `shellGuard` config option (default `true`)
-- Updated plugin manifest version to `2.2.1`
+- **新增 NEW** 第四层 — Shell 执行脱敏 (`ShellExecPlugin`)
+  - 覆盖 `cat` / `head` / `tail` / `awk` / `sed` / `grep` / `cut` / `sort` / `wc` / `diff` 等 40+ shell 命令
+  - 覆盖 `node` / `ruby` / `Rscript` / `perl` / `php` / `lua` / `julia` 等语言运行时
+  - 覆盖数据工具：`jq` / `yq` / `sqlite3` / `csvkit` / `xsv` / `miller`
+  - 与 Python 层共享 `execUtils.js` — 路径提取和脱敏逻辑去重
+- **新增 NEW** `shellGuard` 配置选项（默认 `true`）
+- 更新插件清单版本至 `2.2.1`
 
 ### v2.1.0
-- Added Layer 3 — Python Exec desensitization (`PythonExecPlugin`)
-- Added `pythonGuard` config option
-- Added `migrate/cleanLegacy.js` — removes hooks from older versions on install
+- 新增第三层 — Python 执行脱敏 (`PythonExecPlugin`)
+- 新增 `pythonGuard` 配置选项
+- 新增 `migrate/cleanLegacy.js` — 安装时移除旧版本钩子
 
 ### v2.0.6
-- Added Layers 1 & 2: HTTP Proxy + File Tool desensitization
-- Added orphan-proof heartbeat for proxy process
-- Support for DOCX / PPTX / PDF parsing (zero deps)
+- 新增第一层和第二层：HTTP 代理 + 文件工具脱敏
+- 为代理进程添加防孤儿心跳机制
+- 支持 DOCX / PPTX / PDF 解析（零依赖）
 
 ---
 
-## 🤝 Contributing
+## 🤝 贡献者 | Contributing
 
-- **keyuzhang838-dotcom** — contributed the Hook Plugins module
+- **keyuzhang838-dotcom** — 贡献 Hook Plugins 模块
 
 ---
 
-## 👥 Authors
+## 👥 作者 | Authors
 
 | | |
 |:--|:--|
-| **Alan Song** | Lead Developer |
-| **Roxy Li** | Contributor |
+| **Alan Song** | 主开发者 Lead Developer |
+| **Roxy Li** | 贡献者 Contributor |
 
 ---
 
-## 📄 License
+## 📄 许可证 | License
 
 MIT License
 
 ---
 
 <p align="center">
-  <strong>🛡️ Your data stays on your machine — always</strong>
+  <strong>🛡️ 您的数据永远留在本地 | Your data stays on your machine — always</strong>
   <br><br>
   <img src="https://img.shields.io/badge/OpenClaw-Plugin-blueviolet?style=for-the-badge&logo=robot" />
   <img src="https://img.shields.io/badge/Node.js-Pure_JS-green?style=for-the-badge&logo=nodedotjs" />
@@ -195,5 +258,5 @@ MIT License
 </p>
 
 <p align="center">
-  <sub>Built for privacy · Designed for security</sub>
+  <sub>为隐私而生 · 为安全而设计 | Built for privacy · Designed for security</sub>
 </p>
