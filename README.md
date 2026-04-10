@@ -1,533 +1,312 @@
-<p align="center">
-  <img src="https://img.freepik.com/free-vector/security-concept-illustration_114360-060.jpg?w=1200" width="100%" alt="Data Guard Banner"/>
-</p>
+<div align="center">
 
-<h1 align="center">
-  🔒 Data Guard
-</h1>
+<img src="docs/banner.png" width="100%" alt="Data Guard — Four-Layer Data Desensitization Engine for OpenClaw" />
 
-<p align="center">
-  <strong>Four-layer data desensitization plugin for OpenClaw</strong>
-  <br>
-  Sensitive data is encrypted locally — before it ever reaches an AI API
-</p>
+<br/>
+<br/>
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Version-2.3.1-blue?style=flat-square" />
-  <img src="https://img.shields.io/badge/Plugin_ID-data--guard-blue?style=flat-square" />
-  <img src="https://img.shields.io/badge/Engine-Pure_Node.js--zero_deps-green?style=flat-square" />
-  <img src="https://img.shields.io/badge/Encryption-AES--256--GCM-red?style=flat-square" />
-  <img src="https://img.shields.io/badge/Platform-macOS_Linux_Windows-black?style=flat-square" />
-  <img src="https://img.shields.io/badge/License-MIT-yellow?style=flat-square" />
-</p>
+[![Version](https://img.shields.io/badge/version-2.3.1-6366f1?style=for-the-badge&logo=npm&logoColor=white)](https://github.com/AlanSong2077/Desensitize-AI-Guard)
+[![License](https://img.shields.io/badge/license-MIT-22c55e?style=for-the-badge)](LICENSE)
+[![Node.js](https://img.shields.io/badge/Node.js-%3E%3D18-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org)
+[![Zero Deps](https://img.shields.io/badge/dependencies-zero-f59e0b?style=for-the-badge)](package.json)
+[![Encryption](https://img.shields.io/badge/AES--256--GCM-reversible-ef4444?style=for-the-badge&logo=gnuprivacyguard&logoColor=white)](#reversible-encryption-mode)
+[![OpenClaw](https://img.shields.io/badge/OpenClaw-plugin-8b5cf6?style=for-the-badge)](https://openclaw.ai)
+
+<br/>
+
+**English** · [中文](#中文文档)
+
+<br/>
+
+> *Your data stays on your machine — always.*
+> *您的数据永远留在本地。*
+
+</div>
 
 ---
 
-## 🎯 Overview
+## Table of Contents · 目录
 
-**Data Guard** intercepts outbound AI requests at **four independent layers** — an HTTP proxy, a file tool hook, a Python exec hook, and a Shell exec hook — ensuring that personal and sensitive information is protected on your machine **before** being sent upstream.
+- [Overview · 概述](#overview--概述)
+- [Architecture · 架构](#architecture--架构)
+- [How It Works · 工作原理](#how-it-works--工作原理)
+- [Reversible Encryption Mode · 可逆加密模式](#reversible-encryption-mode--可逆加密模式)
+- [Protected Data Types · 保护数据类型](#protected-data-types--保护数据类型)
+- [Quick Start · 快速开始](#quick-start--快速开始)
+- [Configuration · 配置](#configuration--配置)
+- [Changelog · 更新日志](#changelog--更新日志)
+- [Authors · 作者](#authors--作者)
 
-Starting from v2.3.0, Data Guard introduces a **Reversible Encryption Mode** (AES-256-GCM) alongside the classic block mode. Sensitive values are replaced with opaque tokens before reaching the LLM, then seamlessly decrypted in the response — so the AI never sees raw PII, but the user always gets a coherent answer.
+---
+
+## Overview · 概述
+
+**Data Guard** is a four-layer privacy enforcement plugin for [OpenClaw](https://openclaw.ai). It intercepts every path through which sensitive data could reach an AI provider — HTTP requests, file reads, Python scripts, and shell commands — and either masks or reversibly encrypts PII before it leaves your machine.
+
+**Data Guard** 是 [OpenClaw](https://openclaw.ai) 的四层隐私保护插件。它拦截敏感数据可能到达 AI 服务商的每一条路径——HTTP 请求、文件读取、Python 脚本、Shell 命令——在数据离开本机之前完成脱敏或可逆加密。
+
+<br/>
 
 | | |
-|---|---|
-| Version | 2.3.1 |
-| Plugin ID | `data-guard` |
-| Engine | Pure Node.js — zero external dependencies |
-| Encryption | AES-256-GCM (reversible mode) |
-| Platform | macOS · Linux · Windows |
-| License | MIT |
+|:--|:--|
+| **Plugin ID** | `data-guard` |
+| **Version** | `2.3.1` |
+| **Engine** | Pure Node.js · Zero external dependencies |
+| **Encryption** | AES-256-GCM (reversible mode) |
+| **Platforms** | macOS · Linux · Windows |
+| **License** | MIT |
 
 ---
 
-## ⚡ How It Works
+## Architecture · 架构
 
-### Block Mode (default)
+<div align="center">
+<img src="docs/arch.png" width="88%" alt="Data Guard Four-Layer Protection Architecture" />
+<br/>
+<sub>Four independent layers share a single desensitization engine · 四层独立防护，共享同一脱敏引擎</sub>
+</div>
 
-```
-User Input ──► [Proxy] detect PII ──► 403 Blocked
-                                       ↑
-                              request never leaves machine
-```
+<br/>
 
-### Reversible Mode (v2.3.0+)
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                          Your Machine                                │
-│                                                                      │
-│  User: "手机号13812345678，邮箱zhangsan@example.com"                 │
-│                    │                                                 │
-│                    ▼                                                 │
-│         ┌─────────────────────┐                                     │
-│         │  UnifiedEncryption  │  AES-256-GCM per value              │
-│         │       Guard         │                                     │
-│         └─────────────────────┘                                     │
-│                    │                                                 │
-│   13812345678  ──► <ENC>PHONE_1775833254949_1</ENC>                 │
-│   zhangsan@…   ──► <ENC>EMAIL_1775833254949_0</ENC>                 │
-│                    │                                                 │
-│                    ▼                                                 │
-│         ┌─────────────────────┐                                     │
-│         │   HTTP Proxy :47291 │ ──────────────────────────────────► │
-│         └─────────────────────┘                                     │
-│                                                                      │
-└─────────────────────────────────────────────────────────────────────┘
-                                                    │
-                                          tokens only (no raw PII)
-                                                    ▼
-                                         ┌──────────────────┐
-                                         │   AI Provider    │
-                                         │  sees <ENC>...   │
-                                         └──────────────────┘
-                                                    │
-                                          response with tokens
-                                                    ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│  Proxy decrypts tokens back to original values                       │
-│  <ENC>PHONE_...> ──► 13812345678                                    │
-│  <ENC>EMAIL_...> ──► zhangsan@example.com                           │
-│                    │                                                 │
-│                    ▼                                                 │
-│  User sees complete, coherent response ✅                            │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
-### Four Protection Layers
-
-```
-┌──────────────────────────────────────────────────────────────────────┐
-│                       OpenClaw Gateway                                │
-│                                                                       │
-│  Layer 4 — Shell Exec Hook                                           │
-│  ┌──────────────────────────────────────────────────────────────┐   │
-│  │ cat / head / awk / node / Rscript / bash …                   │   │
-│  │ Intercepts file reads inside shell commands                   │   │
-│  └──────────────────────────────────────────────────────────────┘   │
-│                                                                       │
-│  Layer 3 — Python Exec Hook                                          │
-│  ┌──────────────────────────────────────────────────────────────┐   │
-│  │ exec / process tool calls running Python                      │   │
-│  │ Intercepts open() / read() inside Python scripts              │   │
-│  └──────────────────────────────────────────────────────────────┘   │
-│                                                                       │
-│  Layer 2 — File Tool Hook                                            │
-│  ┌──────────────────────────────────────────────────────────────┐   │
-│  │ read / read_file / read_many_files                            │   │
-│  │ Sanitizes CSV / XLSX / XLS / DOCX / PPTX / PDF               │   │
-│  │ Column-level precision for structured files                   │   │
-│  └──────────────────────────────────────────────────────────────┘   │
-│                                                                       │
-│  Layer 1 — HTTP Proxy (port 47291)                                   │
-│  ┌──────────────────────────────────────────────────────────────┐   │
-│  │ Intercepts all POST /v1/* requests                            │   │
-│  │ Encrypts / masks request body before forwarding               │   │
-│  │ Decrypts response tokens (reversible mode)                    │   │
-│  │ Supports both JSON and SSE streaming responses                │   │
-│  └──────────────────────────────────────────────────────────────┘   │
-└──────────────────────────────────────────────────────────────────────┘
-                               │
-                     encrypted / masked only
-                               ▼
-                       ┌───────────────┐
-                       │  AI Provider  │
-                       │     API       │
-                       └───────────────┘
-```
-
-| Layer | Trigger | What it covers |
-|:------|:--------|:---------------|
-| 🅛 **L1: HTTP Proxy** | Every outbound API call | All message text sent to the model |
-| 🅐 **L2: File Tool Hook** | `read`, `read_file`, `read_many_files` | CSV / XLSX / XLS / DOCX / PPTX / PDF |
-| 🅟 **L3: Python Exec Hook** | `exec` / `process` (Python) | File reads inside Python scripts |
-| 🅢 **L4: Shell Exec Hook** | `exec` / `process` (Shell/Node/R) | File reads inside shell commands |
+| Layer | Trigger | Coverage · 覆盖范围 |
+|:-----:|:--------|:--------------------|
+| **L4** Shell Exec | `exec` / `process` (shell) | `cat` · `awk` · `sed` · `node` · `ruby` · `Rscript` · 80+ commands |
+| **L3** Python Exec | `exec` / `process` (Python) | `pd.read_csv` · `open()` · `polars` · `csv.reader()` |
+| **L2** File Tool | `read` · `read_file` · `read_many_files` | CSV · XLSX · XLS · DOCX · PPTX · PDF |
+| **L1** HTTP Proxy | Every outbound API call · 所有出站 API 调用 | All message text · `[skip-guard]` bypass available |
 
 ---
 
-## 🆕 What's New in v2.3.x
+## How It Works · 工作原理
 
-### v2.3.1 — Bug Fixes
+<div align="center">
+<img src="docs/workflow.png" width="88%" alt="Data Guard Request Processing Workflow" />
+<br/>
+<sub>Request processing workflow · 请求处理流程</sub>
+</div>
 
-- **Fixed: `proxy-process.js` ignored `mode` parameter** — `DATA_GUARD_MODE=reversible` had no effect because the env var was never passed to `ProxyServer`. Now correctly forwarded.
-- **Fixed: regex overlap caused nested tokens** — ID card numbers (18 digits) were simultaneously matched by both `idCard` and `bankCard` patterns, producing malformed output like `<ENC>BANK_CARD_...3</ENC>33132547_2</ENC>`. Fixed with a priority-based greedy deduplication pass before replacement (`idCard` always wins over `bankCard`).
-- **Fixed: SSE streaming responses not decrypted** — `_forwardWithDecryption` only handled `application/json`. OpenAI-style `text/event-stream` responses now have a dedicated SSE branch that decrypts each `data: {...}` chunk individually without buffering the stream.
+<br/>
 
-### v2.3.0 — Reversible Encryption Mode
+Every request entering OpenClaw passes through the following decision path:
 
-- **New: `ReversibleGuard`** (`reversible-guard.js`) — AES-256-GCM encryption engine. `preProcess` encrypts PII values into opaque tokens; `postProcess` decrypts them back. Keys are derived via `scrypt`. Token map is held in memory and cleared at session end.
-- **New: `UnifiedEncryptionGuard`** (`src/core/UnifiedEncryptionGuard.js`) — single entry point for all four layers. `encryptInput()` handles all inbound data; `decryptOutput()` handles all outbound responses. Switching modes requires changing one config value.
-- **New: `DATA_GUARD_MODE` environment variable** — set to `reversible` to enable encryption mode, `block` (default) for classic interception.
-- **New: SSE streaming support** — reversible mode now correctly handles chunked `text/event-stream` responses from providers like OpenAI, decrypting tokens in each SSE event as it arrives.
+每一条进入 OpenClaw 的请求都经过以下决策路径：
 
----
-
-## 🛡️ Supported Data Types
-
-**30+ categories** of sensitive data are recognized and protected:
-
-| Category | Example Input | Block Output | Reversible Output |
-|:---------|:--------------|:-------------|:------------------|
-| 📱 Phone number | `13812345678` | `138****5678` | `<ENC>PHONE_…</ENC>` |
-| 🆔 Chinese ID | `110101199001011234` | `110***********1234` | `<ENC>ID_CARD_…</ENC>` |
-| 💳 Bank card | `6222021234560123` | `6222**********0123` | `<ENC>BANK_CARD_…</ENC>` |
-| 📧 Email | `zhangsan@example.com` | `z***g*@example.com` | `<ENC>EMAIL_…</ENC>` |
-| 🛂 Passport | `E12345678` | `E********` | `<ENC>…</ENC>` |
-| 🌐 IPv4 / IPv6 | `192.168.1.100` | `192.168.*.*` | `<ENC>IP_…</ENC>` |
-| 🔐 API Key / Token | `sk-abc123…` | `sk-****` | `<ENC>API_KEY_…</ENC>` |
-| 🧾 Tax / credit code | `91110108MA01ABC12G` | `91**************2G` | masked |
-| 🧾 Invoice number | `FP1234567890` | `FP***********` | masked |
-| 🔢 Order / transaction ID | `DD2023123456789` | `DD*************` | masked |
-| 🏛️ Social security | `120110199001011234` | `**************5678` | masked |
-| 👤 Name | `张明伟` | `用户_a3f2` | masked |
-| 🏠 Address | `北京市朝阳区建国路88号` | `北京市朝阳区***` | masked |
-| 💬 WeChat / QQ ID | `wx_abc123` | `wx_****` | masked |
-| 🚗 Vehicle plate | `京A·12345` | `京A·***45` | masked |
-| 💰 Amount | `¥352885.8` | `¥264664.35` | masked |
-| ➕ **and more…** | | | |
-
-### Column-level Precision (File Tool Hook)
-
-When reading CSV or Excel files, Data Guard identifies sensitive columns by **header name** and applies the appropriate mask — not a blanket regex.
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│  Input (AI never sees this)                                  │
-├─────────────────────────────────────────────────────────────┤
-│  姓名,手机号,身份证号,银行卡号,邮箱                          │
-│  张明伟,13812345678,110101199001011234,6222…0123,z@ex.com   │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│  Output (what the AI receives)                               │
-├─────────────────────────────────────────────────────────────┤
-│  姓名,手机号,身份证号,银行卡号,邮箱                          │
-│  用户_a3f2,138****5678,110***…1234,6222**…0123,z***@ex.com  │
-└─────────────────────────────────────────────────────────────┘
-```
+1. **L1 HTTP Proxy** checks for the `[skip-guard]` bypass prefix. If absent, all outbound POST bodies are scanned. · L1 HTTP 代理检查 `[skip-guard]` 前缀，若无则扫描所有出站请求体。
+2. **30+ pattern rules** identify PII across phone numbers, IDs, emails, bank cards, IP addresses, API keys, and more. · 30+ 条规则识别手机号、身份证、邮箱、银行卡、IP、API Key 等敏感数据。
+3. In **block mode**, requests containing PII are rejected with `403`. · **阻断模式**下，含敏感数据的请求直接返回 `403`。
+4. In **reversible mode**, each PII value is AES-256-GCM encrypted into an opaque token. The token is sent to the LLM; the response is decrypted transparently before reaching the user. · **可逆模式**下，每个敏感值被 AES-256-GCM 加密为不透明 token 发往 LLM，响应返回后自动解密还原。
+5. **L2–L4 hooks** apply column-level or content-level desensitization to files and exec outputs before they enter the message context. · **L2–L4 钩子**在文件内容和 exec 输出进入消息上下文前完成列级或内容级脱敏。
 
 ---
 
-## 🚀 Quick Start
+## Reversible Encryption Mode · 可逆加密模式
+
+<div align="center">
+<img src="docs/Professional_technical_archite_2026-04-09T17-49-17.png" width="80%" alt="Reversible Encryption Architecture" />
+<br/>
+<sub>AES-256-GCM reversible encryption — the LLM only ever sees tokens · LLM 只看到加密 token，永远看不到原始数据</sub>
+</div>
+
+<br/>
+
+Reversible mode is the flagship feature introduced in v2.3.0. Unlike block mode, it allows the LLM to reason about the full context while guaranteeing that raw PII never leaves the machine.
+
+可逆加密模式是 v2.3.0 引入的核心特性。与阻断模式不同，它允许 LLM 在完整上下文中推理，同时保证原始 PII 永远不离开本机。
+
+<br/>
+
+**Encryption properties · 加密属性**
+
+| Property | Value |
+|:---------|:------|
+| Algorithm · 算法 | AES-256-GCM |
+| Key derivation · 密钥派生 | `scrypt(password, salt, 32)` |
+| IV | 16 random bytes per value · 每个值独立随机 IV |
+| Integrity · 完整性 | 16-byte GCM auth tag |
+| Token format · Token 格式 | `<ENC>TYPE_timestamp_index</ENC>` |
+| Token storage · Token 存储 | In-memory `Map` · cleared on session end |
+| Overlap resolution · 重叠去重 | Priority-based greedy dedup (`idCard > bankCard`) |
+| Streaming · 流式支持 | SSE `text/event-stream` — per-chunk decryption |
+
+**Enable reversible mode · 启用可逆模式**
+
+```json
+// openclaw.json → plugins.entries.data-guard.config
+{
+  "mode": "reversible",
+  "blockOnFailure": false
+}
+```
 
 ```bash
-# 1. Clone and pack
-git clone https://github.com/AlanSong2077/openclaw-plugins-data-guard.git
-cd openclaw-plugins-data-guard
+# Or via environment variable · 或通过环境变量
+DATA_GUARD_MODE=reversible openclaw gateway restart
+```
+
+---
+
+## Protected Data Types · 保护数据类型
+
+**30+ categories** recognized across both block and reversible modes.
+
+两种模式均支持 **30+ 类**敏感数据识别。
+
+<br/>
+
+<div align="center">
+
+| Category · 类型 | Block Output · 阻断输出 | Reversible Output · 可逆输出 |
+|:----------------|:------------------------|:-----------------------------|
+| 📱 Phone · 手机号 | `138****5678` | `<ENC>PHONE_…</ENC>` |
+| 🆔 Chinese ID · 身份证 | `110***…1234` | `<ENC>ID_CARD_…</ENC>` |
+| 💳 Bank card · 银行卡 | `6222**…0123` | `<ENC>BANK_CARD_…</ENC>` |
+| 📧 Email · 邮箱 | `z***@example.com` | `<ENC>EMAIL_…</ENC>` |
+| 🌐 IPv4 / IPv6 | `192.168.*.*` | `<ENC>IP_…</ENC>` |
+| 🔐 API Key / Token | `sk-****` | `<ENC>API_KEY_…</ENC>` |
+| 🛂 Passport · 护照 | `E*******` | masked |
+| 🧾 Tax code · 税号 | `91**…2G` | masked |
+| 🔢 Order ID · 订单号 | `DD*****` | masked |
+| 👤 Name · 姓名 | `用户_a3f2` | masked |
+| 🏠 Address · 地址 | `北京市朝阳区***` | masked |
+| 🚗 Plate · 车牌 | `京A·***45` | masked |
+| 💰 Amount · 金额 | randomized scale | masked |
+| ➕ and 20+ more… | | |
+
+</div>
+
+<br/>
+
+**Column-level precision for structured files · 结构化文件列级精准脱敏**
+
+When reading CSV or Excel files via the file tool hook (L2), Data Guard identifies sensitive columns by header name and applies the appropriate rule — not a blanket regex sweep.
+
+通过文件工具钩子（L2）读取 CSV 或 Excel 时，Data Guard 按列名识别敏感列并应用对应规则，而非全文正则扫描。
+
+---
+
+## Quick Start · 快速开始
+
+```bash
+# Clone and build · 克隆并构建
+git clone https://github.com/AlanSong2077/Desensitize-AI-Guard.git
+cd Desensitize-AI-Guard
 npm pack
 
-# 2. Install into OpenClaw
+# Install into OpenClaw · 安装到 OpenClaw
 openclaw plugins install data-guard-2.3.1.tgz
 
-# 3. Restart the gateway
+# Restart the gateway · 重启网关
 openclaw gateway restart
 
-# 4. Verify
+# Verify · 验证安装
 openclaw plugins list
 # data-guard   loaded   2.3.1 ✅
 ```
 
 ---
 
-## ⚙️ Configuration
+## Configuration · 配置
 
-| Option | Type | Default | Description |
-|:-------|:-----|:--------|:------------|
-| `port` | integer | `47291` | Port the local HTTP proxy listens on |
-| `blockOnFailure` | boolean | `true` | Block request if desensitization fails |
-| `fileGuard` | boolean | `true` | Enable Layer 2 file desensitization |
-| `pythonGuard` | boolean | `true` | Enable Layer 3 Python exec hook |
-| `shellGuard` | boolean | `true` | Enable Layer 4 Shell exec hook |
-| `skipPrefix` | string | `[skip-guard]` | Prepend to bypass text desensitization |
+**Plugin options · 插件选项**
 
-### Environment Variables
+| Option | Type | Default | Description · 说明 |
+|:-------|:-----|:-------:|:--------------------|
+| `port` | `integer` | `47291` | HTTP proxy port · 代理端口 |
+| `mode` | `string` | `block` | `block` or `reversible` · 工作模式 |
+| `blockOnFailure` | `boolean` | `true` | Block on desensitization error · 脱敏失败时阻断 |
+| `fileGuard` | `boolean` | `true` | Enable L2 file hook · 启用文件工具钩子 |
+| `pythonGuard` | `boolean` | `true` | Enable L3 Python hook · 启用 Python exec 钩子 |
+| `shellGuard` | `boolean` | `true` | Enable L4 Shell hook · 启用 Shell exec 钩子 |
+| `skipPrefix` | `string` | `[skip-guard]` | L1 bypass prefix · L1 绕过前缀 |
 
-| Variable | Default | Description |
-|:---------|:--------|:------------|
-| `DATA_GUARD_PORT` | `47291` | Proxy port (overrides plugin config) |
-| `DATA_GUARD_MODE` | `block` | Protection mode: `block` or `reversible` |
-| `DATA_GUARD_BLOCK_ON_FAILURE` | `true` | Fail-safe mode |
-| `DATA_GUARD_ENCRYPTION_PASSWORD` | *(built-in)* | Master password for AES key derivation (reversible mode) |
+**Environment variables · 环境变量**
 
-### Enabling Reversible Mode
+| Variable | Default | Description · 说明 |
+|:---------|:-------:|:--------------------|
+| `DATA_GUARD_PORT` | `47291` | Proxy port · 代理端口 |
+| `DATA_GUARD_MODE` | `block` | `block` or `reversible` |
+| `DATA_GUARD_BLOCK_ON_FAILURE` | `true` | Fail-safe toggle · 失败安全开关 |
+| `DATA_GUARD_ENCRYPTION_PASSWORD` | *(built-in)* | AES master password · 加密主密码 |
 
-```json
-// openclaw.json — plugins.entries.data-guard.config
-{
-  "port": 47291,
-  "mode": "reversible",
-  "blockOnFailure": false
-}
-```
+**Orphan process protection · 孤儿进程防护**
 
-Or via environment variable when starting the proxy manually:
+The proxy runs as a child process with two independent safeguards:
 
-```bash
-DATA_GUARD_MODE=reversible openclaw gateway restart
-```
+代理以子进程方式运行，具备两道独立防护：
+
+- **Heartbeat** — every 5 s the proxy checks if its parent is alive via `process.kill(ppid, 0)`; exits automatically if the gateway is gone. · **心跳检测** — 每 5 秒探测父进程是否存活，网关退出后代理自动关闭。
+- **PID + port cleanup** — on every `start()`, stale processes are killed by PID file first, then by `lsof -ti :PORT` as fallback. · **PID + 端口清理** — 每次启动时先按 PID 文件清理残留进程，再用 `lsof` 兜底。
 
 ---
 
-## 🔐 Reversible Encryption — Technical Details
-
-| Property | Value |
-|:---------|:------|
-| Algorithm | AES-256-GCM |
-| Key derivation | `scrypt(password, salt, 32)` |
-| IV | 16 random bytes per value |
-| Auth tag | 16 bytes (GCM integrity check) |
-| Token format | `<ENC>TYPE_timestamp_index</ENC>` |
-| Token storage | In-memory `Map`, cleared on session end |
-| Overlap resolution | Priority-based greedy dedup (`idCard > bankCard`) |
-| Streaming support | SSE `text/event-stream` — per-chunk decryption |
-
-**How to verify the LLM never sees raw data:** Run a mock upstream server on a local port, point the proxy at it via the base64-encoded URL route, and inspect the raw request body. You will see only `<ENC>…</ENC>` tokens — no original PII.
-
-```bash
-# Example: proxy route to mock server at :19999
-MOCK_B64=$(node -e "console.log(Buffer.from('http://127.0.0.1:19999').toString('base64url'))")
-curl -X POST "http://127.0.0.1:47291/proxy/${MOCK_B64}/chat/completions" \
-  -H "Content-Type: application/json" \
-  -d '{"messages":[{"role":"user","content":"手机号13812345678"}]}'
-
-# Mock server receives:
-# "content": "手机号<ENC>PHONE_1775833254949_1</ENC>"
-```
-
----
-
-## 🔄 Orphan Process Protection
-
-The proxy runs as a **child process** of the gateway. Two mechanisms ensure it never becomes orphaned:
-
-| Mechanism | Side | Description |
-|:----------|:-----|:------------|
-| ❤️ **Heartbeat** | Proxy | Every 5s checks parent via `process.kill(ppid, 0)`. Shuts down if parent is gone. |
-| 🧹 **PID Cleanup** | Plugin | On every `start()`, kills stale process by PID file before spawning new one. |
-| 🔍 **Port Cleanup** | Plugin | Falls back to `lsof -ti :PORT` if PID file is stale or missing. |
-
----
-
-## ⏭️ Skipping Desensitization
-
-To send a message **without** text desensitization (Layer 1), prefix it with `[skip-guard]` (configurable):
-
-```
-[skip-guard] This message goes through without masking.
-```
-
-> ⚠️ Layer 2–4 file and exec desensitization are **unaffected** by this prefix.
-
----
-
-## 🏗️ Project Structure
-
-```
-data-guard/
-│
-├── index.js                          # Plugin entry — wires all four layers together
-├── reversible-guard.js               # AES-256-GCM reversible encryption engine
-├── openclaw.plugin.json              # Plugin manifest
-├── package.json
-│
-└── src/
-    ├── core/
-    │   ├── desensitize.js            # Desensitization engine (30+ rules, zero deps)
-    │   └── UnifiedEncryptionGuard.js # Unified encrypt/decrypt entry for all layers
-    │
-    ├── input/
-    │   └── FileReader.js             # Reads file → parses → desensitizes → temp file
-    │
-    ├── output/
-    │   └── TempFileManager.js        # Temp file lifecycle management
-    │
-    ├── migrate/
-    │   └── cleanLegacy.js            # Removes old hook/proxy artifacts on install
-    │
-    ├── proxy/
-    │   ├── ProxyServer.js            # HTTP reverse proxy (block + reversible + SSE)
-    │   ├── UrlRewriter.js            # Rewrites provider baseUrls in openclaw.json
-    │   └── proxy-process.js          # Proxy child process entry point
-    │
-    └── plugins/
-        ├── base/
-        │   ├── Plugin.js              # Abstract base class for all plugins
-        │   └── ToolPlugin.js          # Base class for tool-hook plugins
-        │
-        ├── ProxyPlugin.js             # HTTP proxy plugin (registerService)
-        │
-        ├── tool/
-        │   ├── FileDesensitizePlugin.js
-        │   └── formats/
-        │       ├── FileFormat.js      # Abstract format + registry
-        │       ├── CsvFormat.js
-        │       ├── XlsxFormat.js
-        │       ├── XlsFormat.js
-        │       ├── DocxFormat.js      # DOCX / DOTX (ZIP + XML, zero deps)
-        │       ├── PptxFormat.js      # PPTX / POTX (ZIP + XML, zero deps)
-        │       ├── PdfFormat.js       # PDF (content stream extraction, zero deps)
-        │       └── index.js
-        │
-        └── exec/
-            ├── PythonExecPlugin.js    # Python exec hook (Layer 3)
-            ├── ShellExecPlugin.js     # Shell / Node / R exec hook (Layer 4)
-            └── execUtils.js           # Shared exec utilities
-```
-
----
-
-## 🛠️ Extending Data Guard
-
-### Adding a new file format
-
-```js
-import { FileFormat } from 'data-guard/plugins/tool/formats/FileFormat'
-import { registry }   from 'data-guard/plugins/tool/formats'
-
-class OdsFormat extends FileFormat {
-  get extensions() { return ['.ods'] }
-  parse(buffer)    { /* return { sheets: [{ name, rows }] } */ }
-}
-
-registry.register(new OdsFormat())
-// FileDesensitizePlugin will automatically handle .ods files
-```
-
-### Adding a new tool plugin
-
-```js
-import { ToolPlugin } from 'data-guard/plugins/base/ToolPlugin'
-
-class MyPlugin extends ToolPlugin {
-  get id()             { return 'my-plugin' }
-  get name()           { return 'My Plugin' }
-  get supportedTools() { return ['my_tool'] }
-
-  handleToolCall(toolName, params, config, logger) {
-    // return { params: modifiedParams } or undefined to pass through
-  }
-}
-```
-
-### Using UnifiedEncryptionGuard directly
-
-```js
-import { UnifiedEncryptionGuard } from 'data-guard/core/UnifiedEncryptionGuard'
-
-const guard = new UnifiedEncryptionGuard({
-  mode: 'reversible',
-  encryptionPassword: 'my-secret',
-  enabledTypes: ['email', 'phone', 'idCard'],
-})
-
-const { data } = guard.encryptInput('联系我：13812345678', { source: 'custom' })
-// data → "联系我：<ENC>PHONE_…</ENC>"
-
-const { data: restored } = guard.decryptOutput(data, { source: 'custom' })
-// restored → "联系我：13812345678"
-```
-
----
-
-## 🔧 Troubleshooting
-
-**Port 47291 already in use**
-```bash
-# Automatic cleanup is built-in since v2.0.6 — this should not happen
-lsof -i :47291
-kill <PID>
-openclaw gateway restart
-```
-
-**Reversible mode not activating**
-```bash
-# Check that DATA_GUARD_MODE is set and the proxy was restarted after the change
-tail -f ~/.openclaw/data-guard/proxy.log
-# Should show: [INFO] Data Guard proxy started … (mode=reversible)
-```
-
-**Tokens appearing in final response (not decrypted)**
-```bash
-# This means the proxy restarted between encrypt and decrypt, clearing the token map.
-# Tokens from a previous proxy session cannot be decrypted. Restart the conversation.
-```
-
-**Plugin not loading**
-```bash
-openclaw plugins list
-openclaw plugins uninstall data-guard --force
-openclaw plugins install data-guard-2.3.1.tgz
-openclaw gateway restart
-```
-
-**Check proxy logs**
-```bash
-tail -f ~/.openclaw/data-guard/proxy.log
-```
-
----
-
-## 📋 Changelog
+## Changelog · 更新日志
 
 ### v2.3.1
-- Fix: `proxy-process.js` was not forwarding `DATA_GUARD_MODE` to `ProxyServer`
-- Fix: regex overlap between `idCard` and `bankCard` caused nested/malformed tokens
-- Fix: SSE `text/event-stream` responses were not decrypted in reversible mode
+- Fix: `proxy-process.js` was not forwarding `DATA_GUARD_MODE` to `ProxyServer` · 修复：`proxy-process.js` 未将 `DATA_GUARD_MODE` 传递给 `ProxyServer`
+- Fix: regex overlap between `idCard` and `bankCard` caused nested / malformed tokens · 修复：`idCard` 与 `bankCard` 正则重叠导致 token 嵌套乱码
+- Fix: SSE `text/event-stream` responses were not decrypted in reversible mode · 修复：可逆模式下 SSE 流式响应未解密
 
 ### v2.3.0
-- New: Reversible Encryption Mode (AES-256-GCM)
-- New: `ReversibleGuard` — per-value encryption with in-memory token map
-- New: `UnifiedEncryptionGuard` — single entry point for all four layers
-- New: `DATA_GUARD_MODE` environment variable
+- New: Reversible Encryption Mode (AES-256-GCM) · 新增：可逆加密模式
+- New: `ReversibleGuard` — per-value encryption with in-memory token map · 新增：`ReversibleGuard` 逐值加密引擎
+- New: `UnifiedEncryptionGuard` — single entry point for all four layers · 新增：四层统一加密入口
+- New: `DATA_GUARD_MODE` environment variable · 新增：`DATA_GUARD_MODE` 环境变量
 
 ### v2.2.x
-- New: Python exec hook (Layer 3)
-- New: Shell / Node / R exec hook (Layer 4)
-- New: `cleanLegacy` migration utility
+- New: Python exec hook (L3) · 新增：Python exec 钩子
+- New: Shell / Node / R exec hook (L4) · 新增：Shell exec 钩子
+- New: `cleanLegacy` migration utility · 新增：旧版清理工具
 
 ### v2.1.0
-- New: DOCX, PPTX, PDF format support
-- New: `lsof`-based port cleanup fallback
+- New: DOCX, PPTX, PDF format support · 新增：DOCX / PPTX / PDF 格式支持
+- New: `lsof`-based port cleanup fallback · 新增：基于 `lsof` 的端口清理兜底
 
 ### v2.0.6
-- Initial stable release
-- HTTP proxy layer + file tool hook
-- CSV / XLSX / XLS column-level desensitization
+- Initial stable release · 首个稳定版本
+- HTTP proxy layer + file tool hook · HTTP 代理层 + 文件工具钩子
+- CSV / XLSX / XLS column-level desensitization · CSV / XLSX / XLS 列级脱敏
 
 ---
 
-## 🤝 Contributing
+## Authors · 作者
 
-Pull requests are welcome! Please open an issue first to discuss significant changes.
+<div align="center">
 
----
+| | Name | Role |
+|:---:|:-----|:-----|
+| 🧑‍💻 | **Alan Song** | Lead Developer · 主要开发者 |
+| 👩‍💻 | **Roxy Li** | Contributor · 贡献者 |
+| 🧑‍💻 | **keyuzhang838-dotcom** | Hook Plugins Module · 钩子插件模块 |
+| 👩‍💻 | **Ayang77777** | Contributor · 贡献者 |
 
-## 👥 Authors
-
-| | |
-|:--|:--|
-| **Alan Song** | Lead Developer |
-| **Roxy Li** | Contributor |
-| **keyuzhang838-dotcom** | Hook Plugins Module |
-| **Ayang77777** | Contributor |
+</div>
 
 ---
 
-## 📄 License
+## 中文文档
 
-MIT License
+> 完整中文说明请参阅上方各章节的中文部分，每节均提供中英双语对照。
+>
+> Full Chinese documentation is provided inline throughout this README in bilingual format.
 
 ---
 
-<p align="center">
-  <strong>🛡️ Your data stays on your machine — always</strong>
-  <br><br>
-  <img src="https://img.shields.io/badge/OpenClaw-Plugin-blueviolet?style=for-the-badge&logo=robot" />
-  <img src="https://img.shields.io/badge/Node.js-Pure_JS-green?style=for-the-badge&logo=nodedotjs" />
-  <img src="https://img.shields.io/badge/Zero_Dependencies-green?style=for-the-badge&logo=package" />
-  <img src="https://img.shields.io/badge/AES--256--GCM-Reversible_Encryption-red?style=for-the-badge&logo=lock" />
-</p>
+<div align="center">
 
-<p align="center">
-  <sub>Built for privacy · Designed for security</sub>
-</p>
+<br/>
+
+**🛡️ Your data stays on your machine — always**
+
+**🛡️ 您的数据永远留在本地**
+
+<br/>
+
+[![OpenClaw Plugin](https://img.shields.io/badge/OpenClaw-Plugin-8b5cf6?style=for-the-badge&logo=robot&logoColor=white)](https://openclaw.ai)
+[![Pure Node.js](https://img.shields.io/badge/Pure_Node.js-Zero_Deps-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org)
+[![AES-256-GCM](https://img.shields.io/badge/AES--256--GCM-Reversible-ef4444?style=for-the-badge&logo=gnuprivacyguard&logoColor=white)](#reversible-encryption-mode)
+
+<br/>
+
+<sub>Built for privacy · Designed for security · 为隐私而生，为安全而设计</sub>
+
+</div>
