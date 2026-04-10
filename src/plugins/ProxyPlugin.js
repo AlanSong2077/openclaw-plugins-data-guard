@@ -142,8 +142,6 @@ export class ProxyPlugin extends Plugin {
           ...process.env,
           DATA_GUARD_PORT:             String(port),
           DATA_GUARD_BLOCK_ON_FAILURE: String(blockOnFailure),
-          DATA_GUARD_MODE:             config.mode || process.env.DATA_GUARD_MODE || 'block',
-          DATA_GUARD_ENCRYPTION_PASSWORD: config.encryptionPassword || process.env.DATA_GUARD_ENCRYPTION_PASSWORD || 'openclaw-data-guard-key',
         }
 
         this._proc = spawn(process.execPath, [this.proxyScriptPath], {

@@ -84,6 +84,8 @@ export function maskName(ctx, v) {
   return ctx.nameMap.get(v)
 }
 
+export function maskAmount(v) { return v }  // 金额不脱敏，保留原值
+
 export function maskCompany(ctx, v) {
   if (!ctx.companyMap.has(v)) ctx.companyMap.set(v, '公司_' + sha8(v).slice(0, 4))
   return ctx.companyMap.get(v)
