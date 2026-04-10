@@ -108,61 +108,84 @@ class ReversibleGuard {
 
   /**
    * 预处理：识别并加密敏感数据
+   *
+   * 修复：先收集所有类型的匹配，去除重叠区间（优先保留更具体的类型），
+   * 再按位置倒序替换，避免 token 嵌套。
+   *
+   * 类型优先级（数字越小越优先）：
+   *   email(0) > phone(1) > idCard(2) > ipAddress(3) > apiKey(4) > bankCard(5)
+   * bankCard 放最后，因为它的正则（16-19位数字）会误匹配身份证号。
    */
   preProcess(text) {
     if (!text || typeof text !== 'string') return text;
-    
-    let processedText = text;
-    const tokenTable = [];
-    let globalIndex = 0;
 
+    // 类型优先级：越小越优先，重叠时保留优先级高的
+    const TYPE_PRIORITY = { email: 0, phone: 1, idCard: 2, ipAddress: 3, apiKey: 4, bankCard: 5 };
+
+    // 收集所有候选匹配
+    const candidates = [];
     for (const [typeName, config] of Object.entries(PII_PATTERNS)) {
       if (!this.enabledTypes.includes(typeName)) continue;
-
-      const matches = [...text.matchAll(config.pattern)];
-      
-      for (const match of matches) {
-        const originalValue = match[0];
-        const position = match.index;
-        
-        // 加密原始值
-        const encryptedValue = this._encrypt(originalValue);
-        
-        // 生成 token
-        const tokenId = this._generateTokenId(config.type, globalIndex++);
-        
-        // 保存映射关系
-        this.tokenMap.set(tokenId, {
-          encrypted: encryptedValue,
-          type: config.type,
-          originalLength: originalValue.length
-        });
-        
-        tokenTable.push({
-          token: tokenId,
-          original: originalValue,
-          position: position,
-          type: config.type
+      const priority = TYPE_PRIORITY[typeName] ?? 99;
+      for (const match of text.matchAll(config.pattern)) {
+        candidates.push({
+          typeName,
+          type:     config.type,
+          priority,
+          original: match[0],
+          start:    match.index,
+          end:      match.index + match[0].length,
         });
       }
     }
 
-    // 按位置倒序排序，从后向前替换（避免位置偏移）
-    tokenTable.sort((a, b) => b.position - a.position);
-    
-    // 替换文本
-    for (const item of tokenTable) {
-      processedText = processedText.slice(0, item.position) + 
-                      item.token + 
-                      processedText.slice(item.position + item.original.length);
+    // 按 start 升序，同 start 时优先级小的在前
+    candidates.sort((a, b) => a.start - b.start || a.priority - b.priority);
+
+    // 贪心去重：跳过与已选区间重叠的候选
+    const selected = [];
+    let lastEnd = -1;
+    for (const c of candidates) {
+      if (c.start < lastEnd) continue;  // 与上一个选中区间重叠，跳过
+      selected.push(c);
+      lastEnd = c.end;
+    }
+
+    // 按位置倒序替换（从后向前，避免位置偏移）
+    selected.sort((a, b) => b.start - a.start);
+
+    let processedText = text;
+    const tokenTable = [];
+    let globalIndex = 0;
+
+    for (const item of selected) {
+      const encryptedValue = this._encrypt(item.original);
+      const tokenId = this._generateTokenId(item.type, globalIndex++);
+
+      this.tokenMap.set(tokenId, {
+        encrypted: encryptedValue,
+        type: item.type,
+        originalLength: item.original.length,
+      });
+
+      tokenTable.push({
+        token:    tokenId,
+        original: item.original,
+        position: item.start,
+        type:     item.type,
+      });
+
+      processedText = processedText.slice(0, item.start) +
+                      tokenId +
+                      processedText.slice(item.end);
     }
 
     console.log(`[ReversibleGuard] Pre-process: ${tokenTable.length} PII items encrypted`);
-    
+
     return {
       text: processedText,
       tokenCount: tokenTable.length,
-      tokenTable: tokenTable
+      tokenTable: tokenTable,
     };
   }
 
